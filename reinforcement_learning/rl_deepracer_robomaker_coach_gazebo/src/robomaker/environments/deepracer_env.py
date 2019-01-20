@@ -354,21 +354,36 @@ class DeepRacerDiscreteEnv(DeepRacerEnv):
         #     throttle = 0.3
 
         if action == 0:  # move left
-            distance_diff = self.distance_from_center - self.distance_last
-            self.distance_integral += self.distance_from_center
-            self.distance_last = self.distance_from_center
+            distance_from_center = self.distance_from_center
+
+            distance_diff = distance_from_center - self.distance_last
+            self.distance_integral += distance_from_center
+            self.distance_last = distance_from_center
 
             steering_angle = P_COEFFICIENT * self.distance_from_center + I_COEFFICIENT * self.distance_integral - D_COEFFICIENT * distance_diff
+            print(steering_angle)
+            if steering_angle > 1:
+                steering_angle = 1
+            elif steering_angle < -1:
+                steering_angle = -1
+
             throttle = 0.3
         elif action == 1:  # move right
-            distance_diff = -self.distance_from_center - self.distance_last
-            self.distance_integral -= self.distance_from_center
-            self.distance_last = -self.distance_from_center
+            distance_from_center = self.distance_from_center
+
+            distance_diff = distance_from_center - self.distance_last
+            self.distance_integral += distance_from_center
+            self.distance_last = distance_from_center
 
             steering_angle = P_COEFFICIENT * self.distance_from_center + I_COEFFICIENT * self.distance_integral - D_COEFFICIENT * distance_diff
+            print(steering_angle)
+            if steering_angle > 1:
+                steering_angle = 1
+            elif steering_angle < -1:
+                steering_angle = -1
+
             throttle = 0.3
         elif action == 2:  # straight
-            distance_diff = 0 - self.distance_last
             self.distance_last = 0
 
             steering_angle = 0
