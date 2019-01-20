@@ -46,6 +46,11 @@ SLEEP_AFTER_RESET_TIME_IN_SECOND = 0.5
 SLEEP_BETWEEN_ACTION_AND_REWARD_CALCULATION_TIME_IN_SECOND = 0.1
 SLEEP_WAITING_FOR_IMAGE_TIME_IN_SECOND = 0.01
 
+# FOR PID CONTROLLER
+P_COEFFICIENT = 0.2
+I_COEFFICIENT = 0.2
+D_COEFFICIENT = 0.2
+
 ### Gym Env ###
 class DeepRacerEnv(gym.Env):
     def __init__(self):
@@ -89,6 +94,10 @@ class DeepRacerEnv(gym.Env):
         self.reward_in_episode = 0
         self.prev_progress = 0
         self.steps = 0
+
+        # for saving previous distance information
+        self.distance_last = 0
+        self.distance_integral = 0
 
     def reset(self):
         if node_type == SAGEMAKER_TRAINING_WORKER:
@@ -322,25 +331,47 @@ class DeepRacerDiscreteEnv(DeepRacerEnv):
         DeepRacerEnv.__init__(self)
 
         # actions -> straight, left, right
-        self.action_space = spaces.Discrete(5)
+        # self.action_space = spaces.Discrete(5)
+        self.action_space = spaces.Discrete(3)
 
     def step(self, action):
 
         # Convert discrete to continuous
+        # if action == 0:  # move left
+        #     steering_angle = 0.8
+        #     throttle = 0.3
+        # elif action == 1:  # move right
+        #     steering_angle = -0.8  # -1 #-0.5 #-1
+        #     throttle = 0.3
+        # elif action == 2:  # straight
+        #     steering_angle = 0
+        #     throttle = 0.3
+        # elif action == 3:  # move left
+        #     steering_angle = 0.4
+        #     throttle = 0.3
+        # elif action == 4:  # move right
+        #     steering_angle = -0.4  # -1 #-0.5 #-1
+        #     throttle = 0.3
+
         if action == 0:  # move left
-            steering_angle = 0.8
+            distance_diff = self.distance_from_center - self.distance_last
+            self.distance_integral += self.distance_from_center
+            self.distance_last = self.distance_from_center
+
+            steering_angle = P_COEFFICIENT * self.distance_from_center + I_COEFFICIENT * self.distance_integral - D_COEFFICIENT * distance_diff
             throttle = 0.3
         elif action == 1:  # move right
-            steering_angle = -0.8  # -1 #-0.5 #-1
+            distance_diff = -self.distance_from_center - self.distance_last
+            self.distance_integral -= self.distance_from_center
+            self.distance_last = -self.distance_from_center
+
+            steering_angle = P_COEFFICIENT * self.distance_from_center + I_COEFFICIENT * self.distance_integral - D_COEFFICIENT * distance_diff
             throttle = 0.3
         elif action == 2:  # straight
+            distance_diff = 0 - self.distance_last
+            self.distance_last = 0
+
             steering_angle = 0
-            throttle = 0.3
-        elif action == 3:  # move left
-            steering_angle = 0.4
-            throttle = 0.3
-        elif action == 4:  # move right
-            steering_angle = -0.4  # -1 #-0.5 #-1
             throttle = 0.3
         else:  # should not be here
             raise ValueError("Invalid action")
